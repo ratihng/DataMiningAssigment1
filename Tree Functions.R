@@ -22,7 +22,7 @@ findbestsplit <- function (x, y){
   for(i in 1:ncol(x.selectedattr)){ #foreach attribute
     x.attr <- x.selectedattr[,i]
     x.sorted <- sort(unique(x.attr))
-    if(length(x.sorted) == 1){
+    if(length(x.sorted) == 1){  #ask this
       splitpoints <- x.sorted
     }
     else{
@@ -31,7 +31,7 @@ findbestsplit <- function (x, y){
     
     i.t <- impurity(y)
     n <- length(y)
-    tempresult <- c(0,0,0)
+    tempresult <- list(NULL,0,0) # change to list(attribute, splitvalue, impurity reduction)
     for(j in 1:length(splitpoints)){
       x.l <- y[x.attr <= splitpoints[j]] #left
       pi.l <- length(x.l)/n
@@ -71,10 +71,10 @@ splitnode <- function(node_id.root, x, y){
       node_id.left <- node_id.current+1
       node_id.current <<- node_id.right <- node_id.current+2
       
-      finaltree[[node_id.left]] <<- node.left <- list(node_id.left, node_id.root, bestsplit[[1]][1], "<=", bestsplit[[2]][1], classlabel(y.left), y.left, x.left)
+      finaltree[[node_id.left]] <<- node.left <- list(node_id.left, node_id.root, bestsplit[[1]][1], "<=", bestsplit[[2]][1], classlabel(y.left))
       print(paste('Add node: [',node_id.left,']',nrow(x.left),'(',length(y.left[y.left == 0]),'/',length(y.left[y.left == 1]),')',sep=' '))
       
-      finaltree[[node_id.right]] <<- node.right <- list(node_id.right, node_id.root, bestsplit[[1]][1], ">", bestsplit[[2]][1], classlabel(y.right), y.right, x.right)
+      finaltree[[node_id.right]] <<- node.right <- list(node_id.right, node_id.root, bestsplit[[1]][1], ">", bestsplit[[2]][1], classlabel(y.right))
       print(paste('Add node: [',node_id.right,']',nrow(x.right),'(',length(y.right[y.right == 0]),'/',length(y.right[y.right == 1]),')',sep=' '))
       
       #call splitnode function (recursively) for the left and right node
@@ -95,19 +95,21 @@ classlabel <- function(y){
 
 #tree grow
 tree.grow <- function(x,y,nmin,minleaf,nfeat){
+  if(nmin == 0 || minleaf == 0 || nfeat == 0) stop('the nmin, minleaf, and nfeat should be bigger than 0')
+
   nmin <<- nmin
   minleaf <<- minleaf
   nfeat <<- nfeat
   
   finaltree <<- list()
   node_id.current <<- 1
-  node.root <- list(node_id.current, NULL, NULL, NULL, NULL, classlabel(y), y, x) #names(node) <- c("node", "parent", attribute", "L/R", splitvalue", "label", "class", "observations")
+  node.root <- list(node_id.current, NULL, NULL, NULL, NULL, classlabel(y)) #names(node) <- c("node", "parent", attribute", "L/R", splitvalue", "label")
   finaltree[[node_id.current]] <<- node.root
   print(paste('Create root node: [',node_id.current,']',nrow(x),'(',length(y[y == 0]),'/',length(y[y == 1]),')',sep=' '))
   
   splitnode(1, x, y)
   
-  result <- aperm(simplify2array(lapply(finaltree,function(x) x[c(1:6)])))
+  result <- aperm(simplify2array(finaltree))
   colnames(result) <-  c("node", "parent", "attribute", "L/R", "splitvalue", "label")
   
   return(result)
